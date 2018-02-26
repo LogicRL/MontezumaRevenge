@@ -236,6 +236,7 @@ def main():
   env.unwrapped.viewer.window.on_key_press = handle_key_press_event
   env.unwrapped.viewer.window.on_key_release = handle_key_release_event
 
+  last_lives = None
   while True:
     # check pause
     while human_sets_pause:
@@ -243,7 +244,20 @@ def main():
       time.sleep(0.1)
 
     # environment roll forward
-    s_next, r, done, _ = env.step(human_agent_action)
+    s_next, r, done, info = env.step(human_agent_action)
+
+    if last_lives is None:
+      print('lives = %s' % (info['ale.lives']))
+      last_lives = info['ale.lives']
+
+    if info['ale.lives'] != last_lives:
+      print('lives = %s (change: %s)' % (
+        info['ale.lives'], info['ale.lives'] - last_lives))
+      last_lives = info['ale.lives']
+    
+    if r != 0:
+      print('reward = %s' % (r))
+    
     env.render()
     time.sleep(0.05)
 
