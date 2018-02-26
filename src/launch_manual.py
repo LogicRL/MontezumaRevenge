@@ -16,6 +16,7 @@ import numpy as np
 import gym
 import time
 
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
@@ -27,6 +28,7 @@ KEY_A = ord('a') # 97
 KEY_W = ord('w') # 119
 KEY_D = ord('d') # 100
 KEY_S = ord('s') # 115
+KEY_P = ord('p') # 112
 KEY_LEFT = 65361
 KEY_UP = 65362
 KEY_RIGHT = 65363
@@ -52,6 +54,7 @@ ACTION_UPLEFTFIRE = 15
 ACTION_DOWNRIGHTFIRE = 16
 ACTION_DOWNLEFTFIRE = 17
 
+key_printscreen_triggered = False
 
 key_space_pressed = False
 key_left_pressed = False
@@ -147,6 +150,8 @@ def handle_key_press_event(key, mod):
   """
 
   global human_sets_pause
+  global key_printscreen_triggered
+
   global key_space_pressed
   global key_left_pressed
   global key_up_pressed
@@ -156,6 +161,10 @@ def handle_key_press_event(key, mod):
   # game environment control
   if key == KEY_ESC:
     human_sets_pause = not human_sets_pause
+    return
+
+  if key == KEY_P:
+    key_printscreen_triggered = True
     return
 
   # agent control
@@ -212,8 +221,14 @@ def main():
   Program entry.
   """
 
+  global human_sets_pause
+  global key_printscreen_triggered
+
+  # Initialize visualization tool
+  matplotlib.interactive(True)
+
   # Initialize the environment
-  env = gym.make('MontezumaRevenge-ram-v0')
+  env = gym.make('MontezumaRevenge-v0')
   env.reset()
   env.render()
 
@@ -232,6 +247,14 @@ def main():
     env.render()
     time.sleep(0.05)
 
+    # handle print screen request
+    if key_printscreen_triggered:
+      key_printscreen_triggered = False
+      human_sets_pause = True
+      plt.imshow(s_next)
+      plt.show()
+
+    # check game over
     if done:
       print('Game Over.')
       exit()
