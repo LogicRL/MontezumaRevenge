@@ -20,10 +20,10 @@ Below are generic objects that may occur in the game.
               be opened with a key
   * __Sword__: the sword that can be picked up by the actor and used to kill an 
                enemy
-  * __Enemy__: the enemy that can kill the actor when touching the actor, or be 
-               killed when the actor is equipped with a sword
-    - __Ghost__: the ghost being a kind of enemies
-    - __Snake__: the snake being a kind of enemies
+  * __Monster__: the monster that can kill the actor when touching the actor, 
+                 or be killed when the actor is equipped with a sword
+    - __Ghost__: the ghost being a kind of monsters
+    - __Snake__: the snake being a kind of monsters
 
 
 ## Predicates Definitions
@@ -31,14 +31,24 @@ Below are generic objects that may occur in the game.
 Below are predicates (symbolic states) definitions.
 
   * `actorInRoom(?room)`: assert if the actor is in room `?room`
-    - `?room`: the name (number) of a room
+    - `?room`: the name of a room
   * `actorOn(?room,?object)`: assert if the actor is on an object in a room
-    - `?room`: the name (number) of a room
-    - `?object`: the name of an object in the room
+    - `?room`: the name of a room
+    - `?object`: the name of an object in the room, whose type can be `ladder` 
+      or `rope`
+  * `keyExists(?room,?key)`: assert if a key exists (not been taken) in a room 
+    - `?room`: the name of a room
+    - `?key`: the name of a key in the room
   * `actorWithKey()`: assert if the actor is with a key
-  * `doorOpen(?room,?door)`: assert if a door in a room is open
-    - `?room`: the name (number) of a room
-    - `?door`: the name (number) of a door in the room
+  * `doorExists(?room,?door)`: assert if a door exists (not been open) in a 
+    room is open
+    - `?room`: the name of a room
+    - `?door`: the name of a door in the room
+  * `monsterExists(?room,?monster)`: assert if a monster exists (not been 
+    killed or destoryed) in the room
+    - `?room`: the name of a room
+    - `?monster`: the name of a monster in the room, whose type can be `ghost` 
+      or `snake`
 
 Note that for the purpose of being consistent in naming, the object defined by 
 number shall be named from top-left to bottom-right starting from `1`. For 
