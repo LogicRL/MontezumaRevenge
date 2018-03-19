@@ -12,9 +12,11 @@ Below are generic objects that may occur in the game.
   * __Ground__: the ground that the actor can stand on
   * __Ladder__: the ladder that the actor can climb on
   * __Rope__: the rope that the actor can jump onto and climb on
-  * __Key__: the key that can be used to open a door
+  * __Key__: the key that can be picked up by the actor and used to open a door
   * __Door__: the door that will stopped the actor from moving forward, and can 
               be opened with a key
+  * __Sword__: the sword that can be picked up by the actor and used to kill an 
+               enemy
   * __Enemy__: the enemy that can kill the actor when touching the actor, or be 
                killed when the actor is equipped with a sword
     - __Ghost__: the ghost being a kind of enemies
