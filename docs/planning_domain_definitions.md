@@ -1,7 +1,10 @@
 # Planning Domain Definitions
 
 In this document, definitions for planning domains are defined for the later on 
-symbolic planning.
+symbolic planning. Symbolic planning shall be defined in 
+[Planning Domain Definition Language (PDDL)](https://en.wikipedia.org/wiki/Planning_Domain_Definition_Language), 
+so the definitions in the following sections will maximumly follow the PDDL 
+syntax for convenience.
 
 
 ## Generic Objects
@@ -21,4 +24,37 @@ Below are generic objects that may occur in the game.
                killed when the actor is equipped with a sword
     - __Ghost__: the ghost being a kind of enemies
     - __Snake__: the snake being a kind of enemies
+
+
+## Predicates Definitions
+
+Below are predicates (symbolic states) definitions.
+
+  * `actorInRoom(?room)`: assert if the actor is in room `?room`
+    - `?room`: the name (number) of a room
+  * `actorOn(?room,?object)`: assert if the actor is on an object in a room
+    - `?room`: the name (number) of a room
+    - `?object`: the name of an object in the room
+  * `actorWithKey()`: assert if the actor is with a key
+  * `doorOpen(?room,?door)`: assert if a door in a room is open
+    - `?room`: the name (number) of a room
+    - `?door`: the name (number) of a door in the room
+
+Note that for the purpose of being consistent in naming, the object defined by 
+number shall be named from top-left to bottom-right starting from `1`. For 
+example, a room with `4` objects of the same kind as `key` shall be named in 
+the following way:
+
+  ```
+  key_1 key_2
+  key_3 key_4
+  ```
+
+
+## References:
+
+  * [An Introduction to PDDL](https://www.cs.toronto.edu/~sheila/2542/s14/A1/introtopddl2.pdf)
+  * [PDDL Editor](http://editor.planning.domains)
+  * [Beating Atari with Natural Language Guided Reinforcement Learning](https://arxiv.org/abs/1704.05539)
+
 
