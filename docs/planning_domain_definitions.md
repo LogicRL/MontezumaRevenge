@@ -34,8 +34,8 @@ Below are predicates (symbolic states) definitions.
     - `?room`: the name of a room
   * `actorOn(?room,?object)`: assert if the actor is on an object in a room
     - `?room`: the name of a room
-    - `?object`: the name of an object in the room, whose type can be `ladder` 
-      or `rope`
+    - `?object`: the name of an object in the room, whose type can be `ladder`, 
+      `rope` or `conveyor`
   * `keyExists(?room,?key)`: assert if a key exists (not been taken) in a room 
     - `?room`: the name of a room
     - `?key`: the name of a key in the room
