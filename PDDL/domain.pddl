@@ -3,30 +3,19 @@
 (define (domain MontezumaRevenge)
 
     (:requirements
-        :durative-actions
-        :equality
-        :negative-preconditions
+    ;    :durative-actions
+    ;    :equality
+    ;    :negative-preconditions
     ;    :numeric-fluents
     ;    :object-fluents
         :typing
     )
 
-    (:types
-        room
-        position
-        spot - position
-        obtainable - position
-        carriable - obtainable
-        key - carriable
-        sword - carriable
-        reward - obtainable
-        door - position
-        monster
-    )
+    (:types room spot key sword reward door monster)
 
-    (:constants
-
-    )
+    ; (:constants
+    ; 
+    ; )
 
     (:predicates
         (actorOnSpot ?room - room ?spot - spot)
@@ -37,56 +26,74 @@
         (rewardExists ?room - room ?reward - reward)
         (doorExists ?room - room ?door - door)
         (monsterExists ?room - room ?monster - monster)
-        (pathExists ?roomFrom - room ?positionFrom - position ?roomTo - room ?positionTo - position)
-        (doorPathExists ?roomFrom - room ?positionFrom - position ?door - door ?roomTo - room ?positionTo - position)
+        (keyReachable ?room - room ?spot - spot ?key - key)
+        (swordReachable ?room - room ?spot - spot ?sword - sword)
+        (rewardReachable ?room - room ?spot - spot ?reward - reward)
+        (pathExistsInRoom ?room - room ?spotFrom - spot ?spotTo - spot)
+        (doorPathExistsInRoom ?room - room ?spotFrom - spot ?door - door ?spotTo - spot)
+        (pathExistsAcrossRooms ?roomFrom - room ?spotFrom - spot ?roomTo - room ?spotTo - spot)
     )
 
-    (:functions
+    ; (:functions
+    ; 
+    ; )
 
+    (:action moveActorInRoom
+        ; move the actor from a spot to another spot in a room
+        :parameters (?room - room ?spotFrom - spot ?spotTo - spot)
+        :precondition (and
+            (actorOnSpot ?room ?spotFrom)
+            (not (actorOnSpot ?room ?spotTo))
+            (pathExistsInRoom ?room ?spotFrom ?spotTo)
+        )
+        :effect (and
+            (actorOnSpot ?room ?spotTo)
+            (not (actorOnSpot ?room ?spotFrom))
+        )
     )
-
-    (:action moveActor
-        ; move the actor from a spot in a room to another spot in a room
+    
+    (:action moveActorInRoomThroughClosedDoor
+        ; move the actor from a spot to another spot through a closed door in a 
+        ; room
+        :parameters (?room - room ?spotFrom - spot ?door - door ?spotTo - spot)
+        :precondition (and
+            (actorOnSpot ?room ?spotFrom)
+            (not (actorOnSpot ?room ?spotTo))
+            (doorPathExistsInRoom ?room ?spotFrom ?door ?spotTo)
+            (doorExists ?room ?door)
+            (actorWithKey)
+        )
+        :effect (and
+            (not (doorExists ?room ?door))
+            (not (actorWithKey))
+            (actorOnSpot ?room ?spotTo)
+            (not (actorOnSpot ?room ?spotFrom))
+        )
+    )
+    
+    (:action moveActorInRoomThroughOpenDoor
+        ; move the actor from a spot to another spot through an open door in a 
+        ; room 
+        :parameters (?room - room ?spotFrom - spot ?door - door ?spotTo - spot)
+        :precondition (and
+            (actorOnSpot ?room ?spotFrom)
+            (not (actorOnSpot ?room ?spotTo))
+            (doorPathExistsInRoom ?room ?spotFrom ?door ?spotTo)
+            (not (doorExists ?room ?door))
+        )
+        :effect (and
+            (actorOnSpot ?room ?spotTo)
+            (not (actorOnSpot ?room ?spotFrom))
+        )
+    )
+    
+    (:action moveActorAcrossRooms
+        ; move the actor from a spot in a room to another spot in another room
         :parameters (?roomFrom - room ?spotFrom - spot ?roomTo - room ?spotTo - spot)
         :precondition (and
             (actorOnSpot ?roomFrom ?spotFrom)
             (not (actorOnSpot ?roomTo ?spotTo))
-            (pathExists ?roomFrom ?spotFrom ?roomTo ?spotTo)
-        )
-        :effect (and
-            (actorOnSpot ?roomTo ?spotTo)
-            (not (actorOnSpot ?roomFrom ?spotFrom))
-        )
-    )
-    
-    (:action moveActorThroughClosedDoor
-        ; move the actor from a spot in a room to another spot in a room through 
-        ; a closed door
-        :parameters (?roomFrom - room ?spotFrom - spot ?door - door ?roomTo - room ?spotTo - spot)
-        :precondition (and
-            (actorOnSpot ?roomFrom ?spotFrom)
-            (not (actorOnSpot ?roomTo ?spotTo))
-            (doorPathExists ?roomFrom ?positionFrom ?door ?roomTo ?positionTo)
-            (doorExists ?door)
-            (actorWithKey)
-        )
-        :effect (and
-            (not (doorExists ?door))
-            (not (actorWithKey))
-            (actorOnSpot ?roomTo ?spotTo)
-            (not (actorOnSpot ?roomFrom ?spotFrom))
-        )
-    )
-    
-    (:action moveActorThroughOpenDoor
-        ; move the actor from a spot in a room to another spot in a room through 
-        ; a open door
-        :parameters (?roomFrom - room ?spotFrom - spot ?door - door ?roomTo - room ?spotTo - spot)
-        :precondition (and
-            (actorOnSpot ?roomFrom ?spotFrom)
-            (not (actorOnSpot ?roomTo ?spotTo))
-            (doorPathExists ?roomFrom ?positionFrom ?door ?roomTo ?positionTo)
-            (not (doorExists ?door))
+            (pathExistsAcrossRooms ?roomFrom ?spotFrom ?roomTo ?spotTo)
         )
         :effect (and
             (actorOnSpot ?roomTo ?spotTo)
@@ -100,7 +107,7 @@
         :precondition (and
             (actorOnSpot ?room ?spot)
             (keyExists ?room ?key)
-            (pathExists ?room ?spot ?room ?key)
+            (keyReachable ?room ?spot ?key)
             (not (actorWithKey))
         )
         :effect (and
@@ -115,7 +122,7 @@
         :precondition (and
             (actorOnSpot ?room ?spot)
             (swordExists ?room ?sword)
-            (pathExists ?room ?spot ?room ?sword)
+            (swordReachable ?room ?spot ?sword)
             (not (actorWithSword))
         )
         :effect (and
@@ -130,7 +137,7 @@
         :precondition (and
             (actorOnSpot ?room ?spot)
             (rewardExists ?room ?reward)
-            (pathExists ?room ?spot ?room ?reward)
+            (rewardReachable ?room ?spot ?reward)
         )
         :effect (and
             (not (rewardExists ?room ?reward))
