@@ -28,27 +28,32 @@ Below are generic objects that may occur in the game.
 
 ## Predicates Definitions
 
-Below are predicates (symbolic states) definitions.
+Below are predicates (symbolic states) definitions that can be monitored:
 
-  * `actorInRoom(?room)`: assert if the actor is in room `?room`
+  * `(actorInRoom ?room)`: assert if the actor is in room `?room`
     - `?room`: the name of a room
-  * `actorOn(?room,?object)`: assert if the actor is on an object in a room
+  * `(actorOnSpot ?room ?spot)`: assert if the actor is on a spot in a room
     - `?room`: the name of a room
-    - `?object`: the name of an object in the room, whose type can be `ladder`, 
-      `rope` or `conveyor`
-  * `keyExists(?room,?key)`: assert if a key exists (not been taken) in a room 
+    - `?spot`: the name of an spot in the room, whose name prefix can be 
+      `ladder`, `chain`, `conveyor` or `landmark`
+  * `(keyExists ?room ?key)`: assert if a key exists (not been taken) in a room 
     - `?room`: the name of a room
     - `?key`: the name of a key in the room
-  * `actorWithKey()`: assert if the actor is with a key
-  * `doorExists(?room,?door)`: assert if a door exists (not been open) in a 
+  * `(actorWithKey)`: assert if the actor is with a key
+  * `(doorExists ?room ?door)`: assert if a door exists (not been open) in a 
     room is open
     - `?room`: the name of a room
     - `?door`: the name of a door in the room
-  * `monsterExists(?room,?monster)`: assert if a monster exists (not been 
+  * `(monsterExists ?room ?monster)`: assert if a monster exists (not been 
     killed or destoryed) in the room
     - `?room`: the name of a room
-    - `?monster`: the name of a monster in the room, whose type can be `ghost` 
-      or `snake`
+    - `?monster`: the name of a monster in the room, whose name prefix can be 
+      `skull` `snake` or `spider`
+
+Below are predicates (symbolic states) definitions that are pre-defined as 
+environmental configurations:
+
+  * ...
 
 Note that for the purpose of being consistent in naming, the object defined by 
 number shall be named from top-left to bottom-right starting from `1`. For 
