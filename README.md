@@ -14,11 +14,12 @@ website:
 https://gym.openai.com
 ```
 
-After the OpenAI Gym is installed successfully, the Atari 2600 backend shall be 
-then install using the following command:
+After the OpenAI Gym is installed successfully, the Atari 2600 backend along 
+with other required dependencies shall be then install using the following 
+command:
 
 ```
-pip install --upgrade atari-py
+pip install -r requirements.txt
 ```
 
 At this point, one may launch the Montezuma Revenge game from the OpenAI Gym 
