@@ -1,11 +1,13 @@
-﻿(define (domain MontezumaRevenge)
+;; domain definition for Montezuma Revenge environment
+
+(define (domain MontezumaRevenge)
 
     (:requirements
         :durative-actions
         :equality
         :negative-preconditions
-        :numeric-fluents
-        :object-fluents
+    ;    :numeric-fluents
+    ;    :object-fluents
         :typing
     )
 
@@ -64,7 +66,7 @@
         :precondition (and
             (actorOnSpot ?roomFrom ?spotFrom)
             (not (actorOnSpot ?roomTo ?spotTo))
-            (doorPathExists ?roomFrom - room ?positionFrom - position ?door - door ?roomTo - room ?positionTo - position)
+            (doorPathExists ?roomFrom ?positionFrom ?door ?roomTo ?positionTo)
             (doorExists ?door)
             (actorWithKey)
         )
@@ -83,7 +85,7 @@
         :precondition (and
             (actorOnSpot ?roomFrom ?spotFrom)
             (not (actorOnSpot ?roomTo ?spotTo))
-            (doorPathExists ?roomFrom - room ?positionFrom - position ?door - door ?roomTo - room ?positionTo - position)
+            (doorPathExists ?roomFrom ?positionFrom ?door ?roomTo ?positionTo)
             (not (doorExists ?door))
         )
         :effect (and

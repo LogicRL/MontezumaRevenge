@@ -1,4 +1,6 @@
-﻿(define (problem markObjects)
+;; problem definition for room 1
+
+(define (problem markObjects)
 
     (:domain objectMarker)
     
