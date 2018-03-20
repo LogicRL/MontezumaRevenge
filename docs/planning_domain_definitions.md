@@ -63,12 +63,12 @@ Below are predicates (symbolic states) definitions that can be monitored:
 Below are predicates (symbolic states) definitions that are pre-defined as 
 environmental configurations:
 
-  * `(pathExists ?roomFrom ?spotFrom ?roomTo ?spotTo)`: assert if a path exists 
-    from a spot in a room to another spot in a room
+  * `(pathExists ?roomFrom ?positionFrom ?roomTo ?positionTo)`: assert if a 
+    path exists from a position in a room to another position in a room
     - `?roomFrom`: the name of the initial room
-    - `?spotFrom`: the name of an initial spot in the initial room
+    - `?positionFrom`: the name of an initial position in the initial room
     - `?roomTo`: the name of the destination room
-    - `?spotTo`: the name of a destination spot in the destination room
+    - `?positionTo`: the name of a destination position in the destination room
 
 Note that for the purpose of being consistent in naming, the object defined by 
 number shall be named from top-left to bottom-right starting from `1`. For 
