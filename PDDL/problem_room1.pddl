@@ -46,8 +46,7 @@
         (monsterExists room_1 skull_1)
     )
     
-    (:goal (or
+    (:goal
         (actorOnSpot room_1 entrance_1)
-        (actorOnSpot room_1 entrance_2)
-    ))
+    )
 )

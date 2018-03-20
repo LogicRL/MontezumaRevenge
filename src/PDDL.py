@@ -39,6 +39,12 @@ def main():
     print('  - %s' % (str(lst_operators[i])))
   print('')
 
+  lst_goals = list(domprob.goals())
+  print('goals: %d' % (len(lst_goals)))
+  for i in range(len(lst_goals)):
+    print('  - %s' % (str(lst_goals[i])))
+  print('')
+
 
 if __name__ == '__main__':
   main()
