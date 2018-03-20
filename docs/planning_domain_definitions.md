@@ -11,19 +11,24 @@ syntax for convenience.
 
 Below are generic objects that may occur in the game.
 
-  * __Actor__: the actor that is controlled by the player
-  * __Ground__: the ground that the actor can stand on
-  * __Ladder__: the ladder that the actor can climb on
-  * __Rope__: the rope that the actor can jump onto and climb on
-  * __Key__: the key that can be picked up by the actor and used to open a door
-  * __Door__: the door that will stopped the actor from moving forward, and can 
-              be opened with a key
-  * __Sword__: the sword that can be picked up by the actor and used to kill an 
-               enemy
-  * __Monster__: the monster that can kill the actor when touching the actor, 
-                 or be killed when the actor is equipped with a sword
-    - __Ghost__: the ghost being a kind of monsters
-    - __Snake__: the snake being a kind of monsters
+  * __Actor__: something that is controlled by the player
+  * __Ground__: something that the __actor__ can stand on
+  * __Ladder__: something that the __actor__ can climb on
+  * __Chain__: something that the __actor__ can jump onto and climb on
+  * __Conveyor__: something that the __actor__ can stand on which the __actor__ 
+                  will be moved automatically
+  * __Key__: something that can be picked up by the __actor__ and used to open 
+             a __door__
+  * __Door__: something that will stopped the __actor__ from moving forward, 
+              and can be opened with a __key__
+  * __Sword__: something that can be picked up by the __actor__ and used to 
+               kill a __monster__
+  * __Monster__: something that can kill the __actor__ when touching it, or be 
+                 killed when the __actor__ is equipped with a __sword__
+    - __Skull__: something that looks like a skull being a kind of __monsters__
+    - __Snake__: something that looks like a snake being a kind of __monsters__
+    - __Spider__: something that looks like a spider being a kind of 
+                  __monsters__
 
 
 ## Predicates Definitions
