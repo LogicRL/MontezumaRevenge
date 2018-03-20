@@ -45,8 +45,13 @@ Below are predicates (symbolic states) definitions that can be monitored:
     - `?room`: the name of a room
     - `?key`: the name of a key in the room
   * `(actorWithKey)`: assert if the actor is with a key
+  * `(swordExists ?room ?sword)`: assert if a sword exists (not been taken) in 
+    a room 
+    - `?room`: the name of a room
+    - `?sword`: the name of a sword in the room
+  * `(actorWithSword)`: assert if the actor is with a sword
   * `(doorExists ?room ?door)`: assert if a door exists (not been open) in a 
-    room is open
+    room
     - `?room`: the name of a room
     - `?door`: the name of a door in the room
   * `(monsterExists ?room ?monster)`: assert if a monster exists (not been 
