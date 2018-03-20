@@ -35,7 +35,7 @@ Below are generic objects that may occur in the game.
 
 Below are predicates (symbolic states) definitions that can be monitored:
 
-  * `(actorInRoom ?room)`: assert if the actor is in room `?room`
+  * `(actorInRoom ?room)`: assert if the actor is in a room
     - `?room`: the name of a room
   * `(actorOnSpot ?room ?spot)`: assert if the actor is on a spot in a room
     - `?room`: the name of a room
