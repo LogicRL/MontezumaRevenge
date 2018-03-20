@@ -1,8 +1,8 @@
 ;; problem definition for room 1
 
-(define (problem markObjects)
+(define (problem ProblemMontezumaRevengeRoom1)
 
-    (:domain objectMarker)
+    (:domain MontezumaRevenge)
     
     (:objects
         room_1 - room 
