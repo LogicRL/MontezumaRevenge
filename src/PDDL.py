@@ -13,6 +13,7 @@ __copyright__   = "Copyright (C) 2018, David Qiu. All rights reserved."
 
 
 import pddlpy
+from collections import deque
 
 import pdb, IPython
 
@@ -66,6 +67,64 @@ class PDDLPlanner(object):
     self.domprob = domprob
 
 
+  def _ConstructPlanFromVisits(visited, s, g):
+    """
+    (internal, static)
+    Construct a plan from visits.
+
+    @param visited The visited trajectory.
+    @param s The starting state as a set of predicate tuples.
+    @param g The goal state as a set of predicate tuples.
+    @return A list of tuples, each of which contains the symbolic action to 
+            take and the post-effect (the state to become after the action is 
+            taken). The list is defined as the following:
+            ```
+            [ (a, s_next), ... ]
+            ```
+            where `a` the symbolic action as a string to take and `s_next` is 
+            the symbolic state as a set of predicate tuples to become after the 
+            action is taken.
+    """
+
+    assert(g in visited)
+
+    plan = deque()
+
+    # construct plan by backtracking
+    s_parent = g
+    while s_parent is not None:
+      s_cur = s_parent
+      s_parent, operator = visited[s_cur]
+      plan.appendleft((operator, s_cur))
+
+    # convert the plan to a ordered list
+    plan = list(plan)
+
+    # validate initial state
+    assert(plan[0][0] is None)
+    assert(plan[0][1] == s)
+
+    return plan
+
+
+  def _ConstructOperatorStr(op):
+    """
+    (internal, static)
+    Construct grounded operator string with variables.
+
+    @param op The operator to be converted to a string.
+    @return A string of the grounded operator string with variables.
+    """
+
+    oplst = [op.operator_name]
+    for var_name in op.variable_list:
+      oplst.append(op.variable_list[var_name])
+
+    opstr = str(tuple(oplst))
+
+    return opstr
+
+
   def _Plan(gops, s, g):
     """
     (internal, static)
@@ -85,9 +144,56 @@ class PDDLPlanner(object):
             action is taken.
     """
 
-    # TODO
+    plan = []
+    visited = dict() # state -> (parent_state, operator)
+    q = deque()
 
-    return []
+    # initialize the search queue
+    q.append((None, None, s)) # (parent_state, operator, state)
+
+    # search for plan with breadth-first search
+    while len(q) > 0:
+      v = q.popleft()
+      s = v[2]
+      visited[frozenset(s)] = (frozenset(v[0]) if v[0] is not None else None, v[1])
+      
+      # search each grounded operator
+      for gop_name in gops:
+        # retrieve grounded operator
+        gop = gops[gop_name]
+
+        # search each grounded operator instance
+        for op in gop:
+          # validate operator name
+          assert(gop_name == op.operator_name)
+
+          # check operator candidate
+          if (len(op.precondition_pos.intersection(s)) == len(op.precondition_pos) and
+              len(op.precondition_neg.intersection(s)) == 0):
+            s_next = s.copy()
+
+            # remove negative effect
+            s_next.difference_update(op.effect_neg)
+
+            # append positive effect
+            s_next = list(s_next)
+            s_next.extend(list(op.effect_pos))
+            s_next = set(s_next)
+
+            # check if goal reached
+            if s_next == g:
+              visited[s_next] = (s, operator)
+              return PDDLPlanner._ConstructPlanFromVisits(visited, s, g)
+
+            # check if already visited
+            if frozenset(s_next) not in visited:
+              opstr = PDDLPlanner._ConstructOperatorStr(op)
+
+              # append to search queue
+              q.append((s, opstr, s_next))
+              print(opstr)
+
+    return None
 
 
   def find_plan(self, initial_state=None, goal_state=None):
@@ -109,7 +215,7 @@ class PDDLPlanner(object):
             action is taken.
     """
 
-    if s is not None:
+    if initial_state is not None:
       s = initial_state
     else:
       s = set()
@@ -117,7 +223,7 @@ class PDDLPlanner(object):
       for a in initial_state:
         s.add(tuple(a.predicate))
 
-    if g is not None:
+    if goal_state is not None:
       g = goal_state
     else:
       g = set()
@@ -151,6 +257,10 @@ def main():
   print('')
 
   show_domprob_summary(domprob)
+
+  planner = PDDLPlanner(domprob)
+  plan = planner.find_plan()
+  print('plan: %s' % (plan))
 
   IPython.embed()
 
