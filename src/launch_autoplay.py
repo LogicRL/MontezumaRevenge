@@ -16,8 +16,9 @@ import numpy as np
 import gym
 from collections import deque
 from PDDL import PDDLPlanner, show_plan
-import LogicRLUtils as Util
+from utils import LogicRLUtils as Util
 from decoder.CNN_state_parser_pytorch import CNNModel as DecoderCNNModel
+from decoder.RLAgents import RLAgents
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -41,6 +42,7 @@ class AutoAgent(object):
     self.agent_subgoal_reward = 1
     self.agent_failure_cost   = -1
     self.rl_state_joint = 4
+    self.rl_state_shape = (84, 84, self.rl_state_joint)
 
     # initialize a symbolic planner
     self.planner = PDDLPlanner(fname_domain, fname_problem)
@@ -49,7 +51,7 @@ class AutoAgent(object):
     self.decoder = decoder
 
     # initialize a RLAgents pool
-    #TODO
+    self.agents = RLAgents(self.rl_state_shape, self.env.action_space.n)
     
 
   def decodeSymbolicState(self, s_dec):
@@ -60,9 +62,7 @@ class AutoAgent(object):
     @return The corresponding symbolic state as a set of predicates.
     """
 
-    symbolic_state = set()
-
-    #TODO
+    symbolic_state = set(self.decoder.decode_state(s_dec))
 
     return symbolic_state
 
@@ -76,14 +76,12 @@ class AutoAgent(object):
     @return The lower-level action predicted by the agent to take.
     """
 
-    a = None
-
-    #TODO
+    a = self.agents.execute(agent_name, s_rl)
 
     return a
 
 
-  def feedbackToAgent(self, agent_name, s_rl, a, s_rl_next, r):
+  def feedbackToAgent(self, agent_name, s_rl, a, s_rl_next, r_rl, done):
     """
     Provide feedback to an RL agent.
 
@@ -91,10 +89,11 @@ class AutoAgent(object):
     @param s_rl The RL state the agent was at.
     @param a The lower-level action taken by the agent.
     @param s_rl_next The RL state the agent reached after taking the action.
-    @param r The reward received by the agent.
+    @param r_rl The reward received by the agent.
+    @param done A boolean indicating if an episode ends.
     """
 
-    #TODO
+    self.agents.feedback(agent_name, (s_rl, a, s_rl_next, r_rl, done))
 
 
   def findSymbolicPlan(self, ss):
@@ -138,6 +137,7 @@ class AutoAgent(object):
     """
 
     q_rl_frames = deque(maxlen=self.rl_state_joint)
+    q_rl_rewards = deque(maxlen=self.rl_state_joint)
 
     # loop through the episodes
     for episode in range(max_episodes):
@@ -148,7 +148,8 @@ class AutoAgent(object):
       s_dec = Util.FrameToDecoderState(frame)
       for i in range(self.rl_state_joint):
         q_rl_frames.append(frame)
-      s_rl = Util.FramesToRLState(q_rl_frames)
+        q_rl_rewards.append(0)
+      s_rl = Util.FramesToRLState(list(q_rl_frames))
 
       # render if requested
       if render:
@@ -179,13 +180,9 @@ class AutoAgent(object):
         # convert states
         s_dec_next = Util.FrameToDecoderState(frame)
         q_rl_frames.append(frame)
-        s_rl_next = Util.FramesToRLState(q_rl_frames)
+        s_rl_next = Util.FramesToRLState(list(q_rl_frames))
 
-        # render if requested
-        if render:
-          env.render()
-
-        # feedback to agent
+        # determine reward for RL agent
         r_rl = 0
         if s_dec_next == s_dec:
           r_rl = self.agent_running_cost
@@ -194,7 +191,15 @@ class AutoAgent(object):
         else:
           r_rl = self.agent_failure_cost
           done = True
-        self.feedbackToAgent(agent_name, s_rl, a, s_rl_next, r_rl)
+        q_rl_rewards.append(r_rl)
+
+        # render if requested
+        if render:
+          env.render()
+
+        # feedback to agent
+        r_rl_mean = np.mean(q_rl_rewards)
+        self.feedbackToAgent(agent_name, s_rl, a, s_rl_next, r_rl_mean, done)
 
         # update states
         frame = frame_next
