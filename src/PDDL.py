@@ -50,12 +50,30 @@ def show_domprob_summary(domprob):
   print('')
 
 
+def show_plan(plan):
+  initial_state = plan[0][1]
+  goal_state = plan[-1][1]
+
+  print('initial_state: %s' % (initial_state))
+  print('')
+
+  print('plan:')
+  for i_step_prev in range(len(plan) - 1):
+    i_step = i_step_prev + 1
+    opstr, state = plan[i_step]
+    print(opstr)
+  print('')
+  
+  print('goal_state: %s' % (goal_state))
+  print('')
+
+
 class PDDLPlanner(object):
   """
   PDDL Planner.
   """
 
-  def __init__(self, domprob):
+  def __init__(self, fname_domain, fname_problem):
     """
     Initialize a PDDL planner.
 
@@ -64,17 +82,35 @@ class PDDLPlanner(object):
 
     super(PDDLPlanner, self).__init__()
     
-    self.domprob = domprob
+    self.fname_domain = fname_domain
+    self.fname_problem = fname_problem
+
+    # initialize domain problem definitions
+    domprob = pddlpy.DomainProblem(self.fname_domain, self.fname_problem)
+
+    self.predefined_initial_state = domprob.initialstate()
+    self.predefined_goal_state = domprob.goals()
+    self.operators = domprob.operators()
+
+    # generate grounded operators dictionary
+    # note: a new domain problem object needs to be initialized from PDDL files 
+    #       everytime a new grounded operator is going to be generated, because 
+    #       of the `ground_operator` bug in the `pddlpy` library.
+    self.grounded_operators_dict = dict()
+    for operator in self.operators:
+      domprob = pddlpy.DomainProblem(self.fname_domain, self.fname_problem)
+      grounded_operator = list(domprob.ground_operator(operator))
+      self.grounded_operators_dict[operator] = grounded_operator
 
 
-  def _ConstructPlanFromVisits(visited, s, g):
+  def _ConstructPlanFromVisits(visited, s, sg):
     """
     (internal, static)
     Construct a plan from visits.
 
     @param visited The visited trajectory.
     @param s The starting state as a set of predicate tuples.
-    @param g The goal state as a set of predicate tuples.
+    @param sg The goal state as a set of predicate tuples.
     @return A list of tuples, each of which contains the symbolic action to 
             take and the post-effect (the state to become after the action is 
             taken). The list is defined as the following:
@@ -86,19 +122,26 @@ class PDDLPlanner(object):
             action is taken.
     """
 
-    assert(g in visited)
+    s = frozenset(s)
+    sg = frozenset(sg)
+    
+    assert(sg in visited)
 
-    plan = deque()
+    plan = []
 
     # construct plan by backtracking
-    s_parent = g
+    s_parent = sg
     while s_parent is not None:
       s_cur = s_parent
-      s_parent, operator = visited[s_cur]
-      plan.appendleft((operator, s_cur))
+      s_parent, opstr = visited[s_cur]
+      #print(s_parent)
+      print(opstr)
+      #print(s_cur)
+      plan.append((opstr, s_cur))
+      print('')
 
     # convert the plan to a ordered list
-    plan = list(plan)
+    plan.reverse()
 
     # validate initial state
     assert(plan[0][0] is None)
@@ -132,7 +175,7 @@ class PDDLPlanner(object):
 
     @param gopdict The grounded operators dictionary.
     @param s The starting state as a set of predicate tuples.
-    @param g The goal state as a set of predicate tuples.
+    @param g The goals as a set of predicate tuples.
     @return A list of tuples, each of which contains the symbolic action to 
             take and the post-effect (the state to become after the action is 
             taken). The list is defined as the following:
@@ -144,7 +187,6 @@ class PDDLPlanner(object):
             action is taken.
     """
 
-    plan = []
     visited = dict() # state -> (parent_state, operator)
     q = deque()
 
@@ -154,8 +196,8 @@ class PDDLPlanner(object):
     # search for plan with breadth-first search
     while len(q) > 0:
       v = q.popleft()
-      s = v[2]
-      visited[frozenset(s)] = (frozenset(v[0]) if v[0] is not None else None, v[1])
+      s_cur = v[2]
+      visited[frozenset(s_cur)] = (frozenset(v[0]) if v[0] is not None else None, v[1])
       
       # search each grounded operator
       for gop_name in gops:
@@ -164,13 +206,15 @@ class PDDLPlanner(object):
 
         # search each grounded operator instance
         for op in gop:
+          opstr = PDDLPlanner._ConstructOperatorStr(op)
+
           # validate operator name
           assert(gop_name == op.operator_name)
 
           # check operator candidate
-          if (len(op.precondition_pos.intersection(s)) == len(op.precondition_pos) and
-              len(op.precondition_neg.intersection(s)) == 0):
-            s_next = s.copy()
+          if (len(op.precondition_pos.intersection(s_cur)) == len(op.precondition_pos) and
+              len(op.precondition_neg.intersection(s_cur)) == 0):
+            s_next = s_cur.copy()
 
             # remove negative effect
             s_next.difference_update(op.effect_neg)
@@ -180,18 +224,16 @@ class PDDLPlanner(object):
             s_next.extend(list(op.effect_pos))
             s_next = set(s_next)
 
-            # check if goal reached
-            if s_next == g:
-              visited[s_next] = (s, operator)
-              return PDDLPlanner._ConstructPlanFromVisits(visited, s, g)
+            # check if goal reached, and construct plan if so
+            if len(s_next.intersection(g)) == len(g):
+              sg = s_next
+              visited[frozenset(sg)] = (frozenset(s_cur), opstr)
+              return PDDLPlanner._ConstructPlanFromVisits(visited, s, sg)
 
-            # check if already visited
+            # check if already visited, and append to search queue if not
             if frozenset(s_next) not in visited:
-              opstr = PDDLPlanner._ConstructOperatorStr(op)
-
-              # append to search queue
-              q.append((s, opstr, s_next))
-              print(opstr)
+              q.append((s_cur, opstr, s_next))
+              #print(opstr)
 
     return None
 
@@ -219,7 +261,7 @@ class PDDLPlanner(object):
       s = initial_state
     else:
       s = set()
-      initial_state = list(self.domprob.initialstate())
+      initial_state = list(self.predefined_initial_state)
       for a in initial_state:
         s.add(tuple(a.predicate))
 
@@ -227,21 +269,15 @@ class PDDLPlanner(object):
       g = goal_state
     else:
       g = set()
-      goal_state = list(self.domprob.goals())
+      goal_state = list(self.predefined_goal_state)
       for a in goal_state:
         g.add(tuple(a.predicate))
 
     s = set(s)
     g = set(g)
 
-    # construct grounded operators dictionary
-    gops = dict()
-    for operator in self.domprob.operators():
-      grounded_operator = list(self.domprob.ground_operator(operator))
-      gops[operator] = grounded_operator
-
     # find plan
-    plan = PDDLPlanner._Plan(gops, s, g)
+    plan = PDDLPlanner._Plan(self.grounded_operators_dict, s, g)
 
     return plan
 
@@ -258,11 +294,11 @@ def main():
 
   show_domprob_summary(domprob)
 
-  planner = PDDLPlanner(domprob)
+  planner = PDDLPlanner(fname_domain, fname_problem)
   plan = planner.find_plan()
-  print('plan: %s' % (plan))
+  show_plan(plan)
 
-  IPython.embed()
+  #IPython.embed()
 
 
 if __name__ == '__main__':
