@@ -89,7 +89,7 @@ class PDDLPlanner(object):
     domprob = pddlpy.DomainProblem(self.fname_domain, self.fname_problem)
 
     self.predefined_initial_state = domprob.initialstate()
-    self.predefined_goal_state = domprob.goals()
+    self.predefined_goals = domprob.goals()
     self.operators = domprob.operators()
 
     # generate grounded operators dictionary
@@ -189,6 +189,10 @@ class PDDLPlanner(object):
     # initialize the search queue
     q.append((None, None, s)) # (parent_state, operator, state)
 
+    # check if goals already satisfied
+    if len(s.intersection(g)) == len(g):
+      return [(None, s)]
+
     # search for plan with breadth-first search
     while len(q) > 0:
       v = q.popleft()
@@ -234,14 +238,14 @@ class PDDLPlanner(object):
     return None
 
 
-  def find_plan(self, initial_state=None, goal_state=None):
+  def find_plan(self, initial_state=None, goals=None):
     """
     Find a plan from the stating state to the goal state.
 
     @param initial_state The starting state as a set of predicate tuples. 
                          (optinal, default: as defined in `domprob`)
-    @param goal_state The goal state as a set of predicate tuples. (optinal, 
-                      default: as defined in `domprob`)
+    @param goals The goals as a set of predicate tuples. (optinal, default: as 
+                 defined in `domprob`)
     @return A list of tuples, each of which contains the symbolic action to 
             take and the post-effect (the state to become after the action is 
             taken). The list is defined as the following:
@@ -261,12 +265,12 @@ class PDDLPlanner(object):
       for a in initial_state:
         s.add(tuple(a.predicate))
 
-    if goal_state is not None:
-      g = goal_state
+    if goals is not None:
+      g = goals
     else:
       g = set()
-      goal_state = list(self.predefined_goal_state)
-      for a in goal_state:
+      goals = list(self.predefined_goals)
+      for a in goals:
         g.add(tuple(a.predicate))
 
     s = set(s)
@@ -294,7 +298,7 @@ def main():
   plan = planner.find_plan()
   show_plan(plan)
 
-  #IPython.embed()
+  IPython.embed()
 
 
 if __name__ == '__main__':
