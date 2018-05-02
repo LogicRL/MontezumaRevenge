@@ -16,6 +16,8 @@ import numpy as np
 import gym
 from collections import deque
 from PDDL import PDDLPlanner, show_plan
+import LogicRLUtils as Util
+from decoder.CNN_state_parser_pytorch import CNNModel as DecoderCNNModel
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -23,31 +25,12 @@ import matplotlib.image as mpimg
 import pdb
 
 
-class Util(object):
-  """
-  General utilities.
-  """
-
-  decoder_frame_width = 84
-  decoder_frame_height = 84
-
-  rl_frame_width = 84
-  rl_frame_height = 84
-  rl_state_joint = 4
-
-  def FrameToDecoderState(frame):
-    return None
-
-  def FramesToRLState(frames):
-    return None
-
-
 class AutoAgent(object):
   """
   AutoAgent class.
   """
 
-  def __init__(self, env, fname_domain, fname_problem):
+  def __init__(self, env, decoder, fname_domain, fname_problem):
     super(AutoAgent, self).__init__()
     
     self.env = env
@@ -63,7 +46,7 @@ class AutoAgent(object):
     self.planner = PDDLPlanner(fname_domain, fname_problem)
 
     # initialize a symbolic state decoder
-    #TODO
+    self.decoder = decoder
 
     # initialize a RLAgents pool
     #TODO
@@ -225,7 +208,11 @@ def main():
   
   env = gym.make('MontezumaRevenge-ram-v0')
 
-  agent = AutoAgent(env, fname_domain, fname_problem)
+  decoder_classes = [15]
+  decoder = DecoderCNNModel(decoder_classes)
+
+  agent = AutoAgent(env, decoder, fname_domain, fname_problem)
+
   success = agent.autoplay()
   print('success: %s' % (success))
 
