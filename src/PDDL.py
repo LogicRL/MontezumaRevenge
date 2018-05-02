@@ -134,11 +134,7 @@ class PDDLPlanner(object):
     while s_parent is not None:
       s_cur = s_parent
       s_parent, opstr = visited[s_cur]
-      #print(s_parent)
-      print(opstr)
-      #print(s_cur)
       plan.append((opstr, s_cur))
-      print('')
 
     # convert the plan to a ordered list
     plan.reverse()
