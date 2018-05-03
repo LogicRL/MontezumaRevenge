@@ -23,7 +23,7 @@ from decoder.RLAgents import RLAgents
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-import pdb
+import pdb, IPython
 
 
 class AutoAgent(object):
@@ -46,6 +46,18 @@ class AutoAgent(object):
 
     # initialize a symbolic planner
     self.planner = PDDLPlanner(fname_domain, fname_problem)
+    self.static_predicate_operators = [
+      'keyReachable',
+      'swordReachable',
+      'rewardReachable',
+      'pathExistsInRoom',
+      'doorPathExistsInRoom',
+      'pathExistsAcrossRooms'
+    ]
+    self.static_predicates = set()
+    for a in self.planner.predefined_initial_state:
+      if a.predicate[0] in self.static_predicate_operators:
+        self.static_predicates.add(tuple(a.predicate))
 
     # initialize a symbolic state decoder
     self.decoder = decoder
@@ -62,7 +74,14 @@ class AutoAgent(object):
     @return The corresponding symbolic state as a set of predicates.
     """
 
-    symbolic_state = set(self.decoder.decode_state(s_dec))
+    decoded_predicate_strs = set(self.decoder.decode_state(s_dec))
+    symbolic_state = set()
+
+    for predstr in decoded_predicate_strs:
+      predicate = tuple(predstr.split(','))
+      symbolic_state.add(predicate)
+    
+    symbolic_state = symbolic_state.union(self.static_predicates)
 
     return symbolic_state
 
@@ -125,16 +144,19 @@ class AutoAgent(object):
     return plan[0]
 
 
-  def autoplay(self, max_episodes=1e6, learn=True, render=False):
+  def autoplay(self, max_episodes=int(1e6), learn=True, render=False, verbose=False):
     """
     Play autonomously and learn online.
 
     @param max_episodes The maximum number of episodes to run the AutoAgent.
     @param learn The switch to enable online learning.
     @param render The switch to enable rendering.
+    @param verbose The switch to enable verbose log.
     @return A boolean indicating if the agent solve the game within the maximum 
             number of episodes.
     """
+
+    env = self.env
 
     q_rl_frames = deque(maxlen=self.rl_state_joint)
     q_rl_rewards = deque(maxlen=self.rl_state_joint)
@@ -159,8 +181,11 @@ class AutoAgent(object):
       while not done:
         # find the next symbolic operation
         ss = self.decodeSymbolicState(s_dec)
-        plan = self.findPlan(ss)
+        #IPython.embed() #DEBUG
+        plan = self.findSymbolicPlan(ss)
         op_next, ss_next = self.extractNextStepFromPlan(plan)
+        if verbose:
+          print('operator: %s' % (op_next))
 
         # reset the environment if no plan is found
         if ss_next is None:
@@ -211,14 +236,14 @@ def main():
   fname_domain = '../PDDL/domain.pddl'
   fname_problem = '../PDDL/problem_room1.pddl'
   
-  env = gym.make('MontezumaRevenge-ram-v0')
+  env = gym.make('MontezumaRevenge-v0')
 
   decoder_classes = [15]
   decoder = DecoderCNNModel(decoder_classes)
 
   agent = AutoAgent(env, decoder, fname_domain, fname_problem)
 
-  success = agent.autoplay()
+  success = agent.autoplay(render=True, verbose=True)
   print('success: %s' % (success))
 
 
