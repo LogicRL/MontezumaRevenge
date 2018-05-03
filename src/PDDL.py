@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 """
-launch_manual.py
-Launch the Montezuma Revenge game with manual control.
+PDDL.py
+Artificial Intelligence (AI) planner for Planning Domain Definition Language 
+(PDDL), an implementation of standardized AI planning languages.
 """
 
 __version__     = "0.0.1"
