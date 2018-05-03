@@ -13,8 +13,9 @@ __copyright__   = "Copyright (C) 2018, David Qiu. All rights reserved."
 
 
 import numpy as np
-
+import cv2
 import pdb, IPython
+import torch
 
 
 decoder_frame_width = 84
@@ -33,9 +34,9 @@ def FrameToDecoderState(frame):
   @return The decoder state converted from the raw frame.
   """
 
-  #TODO
-
-  return None
+  image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+  resized_image = cv2.resize(image, (decoder_frame_width, decoder_frame_height), interpolation = cv2.INTER_CUBIC)[np.newaxis,np.newaxis,:,:]
+  return torch.FloatTensor(resized_image)
 
 
 def FramesToRLState(frames):
@@ -48,7 +49,11 @@ def FramesToRLState(frames):
 
   assert(len(frames) == rl_state_joint)
 
-  #TODO
-
-  return None
+  results = []
+  for frame in frames:
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    resized_image = cv2.resize(image, (rl_frame_width, rl_frame_height), interpolation = cv2.INTER_CUBIC)[np.newaxis,:,:,np.newaxis]
+    results.append(resized_image)
+  results = np.concatenate(results, -1)
+  return results
 
