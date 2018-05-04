@@ -26,6 +26,25 @@ import matplotlib.image as mpimg
 import pdb, IPython
 
 
+def print_symbolic_state_transition(s1, s2, prefix=''):
+  """
+  Print the difference between two symbolic states.
+
+  @param s1 The original symbolic state.
+  @param s2 The updated symbolic state.
+  @param prefix The prefix added to the front of each line.
+  """
+
+  predicates_neg = s1.difference(s2)
+  predicates_pos = s2.difference(s1)
+
+  for p in predicates_neg:
+    print(prefix + '- ' + str(p))
+
+  for p in predicates_pos:
+    print(prefix + '+ ' + str(p))
+
+
 class AutoAgent(object):
   """
   AutoAgent class.
@@ -227,11 +246,14 @@ class AutoAgent(object):
           r_rl = self.agent_subgoal_reward
           if verbose:
             print('[ INFO ] symbolic plan step executed (r_rl: %f, op: %s)' % (r_rl, op_next))
+            print_symbolic_state_transition(ss, ss_next)
         else:
           r_rl = self.agent_failure_cost
           done = True
           if verbose:
             print('[ INFO ] subtask failed (r_rl: %f, op: %s)' % (r_rl, op_next))
+            print_symbolic_state_transition(ss, ss_next)
+
         q_rl_rewards.append(r_rl)
 
         # render if requested
