@@ -1,1 +1,8 @@
+*.DS_Store
 *.pyc
+*.npy
+*.pkl
+*.h5
+
+lev1_labeled
+save_weights
