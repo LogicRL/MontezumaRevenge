@@ -54,10 +54,22 @@ class AutoAgent(object):
       'doorPathExistsInRoom',
       'pathExistsAcrossRooms'
     ]
+
+    # construct predefined initial state and static predicates
     self.static_predicates = set()
+    self.predefined_initial_state = set()
     for a in self.planner.predefined_initial_state:
+      # construct initial state
+      self.predefined_initial_state.add(tuple(a.predicate))
+
+      # construct static predicates
       if a.predicate[0] in self.static_predicate_operators:
         self.static_predicates.add(tuple(a.predicate))
+
+    # construct predefined goals
+    self.predefined_goals = set()
+    for a in self.planner.predefined_goals:
+      self.predefined_goals.add(tuple(a.predicate))
 
     # initialize a symbolic state decoder
     self.decoder = decoder
@@ -128,22 +140,6 @@ class AutoAgent(object):
     return plan
 
 
-  def extractNextStepFromPlan(self, plan):
-    """
-    Extract the next step from a plan.
-
-    @param plan The symbolic plan.
-    @return A 2-tuple of the next action to take and the expected next symbolic 
-            state after the action has been successfully executed, which is 
-            defined in the form `()`
-    """
-
-    if len(plan) == 0 or plan is None:
-      return (None, None)
-
-    return plan[0]
-
-
   def autoplay(self, max_episodes=int(1e6), learn=True, render=False, verbose=False):
     """
     Play autonomously and learn online.
@@ -161,13 +157,20 @@ class AutoAgent(object):
     q_rl_frames = deque(maxlen=self.rl_state_joint)
     q_rl_rewards = deque(maxlen=self.rl_state_joint)
 
+    g = self.predefined_goals # already converted to predicate sets
+
     # loop through the episodes
     for episode in range(max_episodes):
+      if verbose:
+        print('')
+      print('[ INFO ] episode: %d / %d' % (episode, max_episodes))
+
       # reset the environment
       frame = env.reset()
 
       # initialize states
       s_dec = Util.FrameToDecoderState(frame)
+      ss = self.decodeSymbolicState(s_dec)
       for i in range(self.rl_state_joint):
         q_rl_frames.append(frame)
         q_rl_rewards.append(0)
@@ -180,20 +183,26 @@ class AutoAgent(object):
       done = False
       while not done:
         # find the next symbolic operation
-        ss = self.decodeSymbolicState(s_dec)
-        #IPython.embed() #DEBUG
         plan = self.findSymbolicPlan(ss)
-        op_next, ss_next = self.extractNextStepFromPlan(plan)
-        if verbose:
-          print('operator: %s' % (op_next))
+        
+        # check if a feasible plan exists
+        if plan is None or len(plan) == 0:
+          done = True
+          if verbose:
+            print('[ INFO ] failed to find feasible plan')
 
-        # reset the environment if no plan is found
-        if ss_next is None:
+        # check if the goal already satisfied
+        if len(plan) == 1:
+          assert(len(plan[0][1].intersection(g)) == len(g))
+          done = True
           continue
-
-        # indicate success if the goal is reached
-        if op_next is None and ss_next is not None:
-          return True
+          if verbose:
+            print('[ INFO ] subgoal satisfied')
+          
+        # extract the next operator
+        assert(plan[0][1] == ss)
+        op_next = plan[1][0]
+        ss_next_expected = plan[1][1]
 
         # predict the lower-level action to take
         agent_name = op_next
@@ -204,18 +213,25 @@ class AutoAgent(object):
 
         # convert states
         s_dec_next = Util.FrameToDecoderState(frame)
+        ss_next = self.decodeSymbolicState(s_dec_next)
         q_rl_frames.append(frame)
         s_rl_next = Util.FramesToRLState(list(q_rl_frames))
 
         # determine reward for RL agent
         r_rl = 0
-        if s_dec_next == s_dec:
+        if ss_next == ss:
           r_rl = self.agent_running_cost
-        elif s_dec_next == ss_next:
+          if verbose:
+            print('[ INFO ] symbolic state remains (r_rl: %f, op: %s)' % (r_rl, op_next))
+        elif ss_next == ss_next_expected:
           r_rl = self.agent_subgoal_reward
+          if verbose:
+            print('[ INFO ] symbolic plan step executed (r_rl: %f, op: %s)' % (r_rl, op_next))
         else:
           r_rl = self.agent_failure_cost
           done = True
+          if verbose:
+            print('[ INFO ] subtask failed (r_rl: %f, op: %s)' % (r_rl, op_next))
         q_rl_rewards.append(r_rl)
 
         # render if requested
@@ -229,7 +245,10 @@ class AutoAgent(object):
         # update states
         frame = frame_next
         s_dec = s_dec_next
+        ss = ss_next
         s_rl = s_rl_next
+
+    return False
 
 
 def main():
