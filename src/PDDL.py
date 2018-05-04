@@ -165,7 +165,7 @@ class PDDLPlanner(object):
     return opstr
 
 
-  def _Plan(gops, s, g):
+  def _Plan(gops, s, g, verbose=False):
     """
     (internal, static)
     Find a plan from the stating state to the goal state.
@@ -173,6 +173,7 @@ class PDDLPlanner(object):
     @param gopdict The grounded operators dictionary.
     @param s The starting state as a set of predicate tuples.
     @param g The goals as a set of predicate tuples.
+    @param verbose The switch to turn on verbose logging. (default: False)
     @return A list of tuples, each of which contains the symbolic action to 
             take and the post-effect (the state to become after the action is 
             taken). The list is defined as the following:
@@ -198,8 +199,12 @@ class PDDLPlanner(object):
     while len(q) > 0:
       v = q.popleft()
       s_cur = v[2]
-      visited[frozenset(s_cur)] = (frozenset(v[0]) if v[0] is not None else None, v[1])
-      
+      if frozenset(s_cur) not in visited:
+        visited[frozenset(s_cur)] = (frozenset(v[0]) if v[0] is not None else None, v[1])
+      if verbose:
+        print('')
+        print('proc: %s' % (v[1]))
+
       # search each grounded operator
       for gop_name in gops:
         # retrieve grounded operator
@@ -234,7 +239,8 @@ class PDDLPlanner(object):
             # check if already visited, and append to search queue if not
             if frozenset(s_next) not in visited:
               q.append((s_cur, opstr, s_next))
-              #print(opstr)
+              if verbose:
+                print('  + %s' % (opstr))
 
     return None
 
