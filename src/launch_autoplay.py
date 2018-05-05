@@ -57,9 +57,9 @@ class AutoAgent(object):
     self.fname_domain = fname_domain
     self.fname_problem = fname_problem
 
-    self.agent_running_cost   = -0.001
-    self.agent_subgoal_reward = 1
-    self.agent_failure_cost   = -1
+    self.agent_running_cost   = -1
+    self.agent_subgoal_reward = 100
+    self.agent_failure_cost   = -100
     self.rl_state_joint = 4
     self.rl_state_shape = (84, 84, self.rl_state_joint)
 
@@ -196,6 +196,10 @@ class AutoAgent(object):
         q_rl_rewards.append(0)
       s_rl = Util.FramesToRLState(list(q_rl_frames))
 
+      # render if requested
+      if render:
+        env.render()
+
       # find initial symbolic plan
       plan = self.findSymbolicPlan(ss)
       if episode == 0:
@@ -204,10 +208,6 @@ class AutoAgent(object):
         print('')
         input('press ENTER to start autoplay..')
         print('')
-
-      # render if requested
-      if render:
-        env.render()
 
       done = False
       ss_errcnt = 0
@@ -320,14 +320,30 @@ def main():
   fname_domain = '../PDDL/domain.pddl'
   fname_problem = '../PDDL/problem_room1.pddl'
   
+  # initialize environment
   env = gym.make('MontezumaRevenge-v0')
 
-  decoder_classes = [15]
-  decoder = DecoderCNNModel(decoder_classes)
+  # initialize symbolic state decoder
+  decoder_classes               = [14]
+  decoder_label_dir             = '../annotated_data/symbolic_states_room1' 
+  decoder_frame_dir             = '../annotated_data/symbolic_states_room1' 
+  decoder_predicates_file       = '../annotated_data/predicates.txt'
+  decoder_weights_dir           = '../model_weights'
+  decoder_pretrained_model_file = decoder_weights_dir + '/parser_epoch_17_loss_7.19790995944436e-05_valacc_0.9992972883597884.t7'
 
+  decoder = DecoderCNNModel(
+    decoder_classes,
+    pretrained_model_pth=decoder_pretrained_model_file,
+    text_dir=decoder_label_dir,
+    img_dir=decoder_frame_dir,
+    label_file=decoder_predicates_file,
+    weights_dir=decoder_weights_dir)
+
+  # initialize agent
   agent = AutoAgent(env, decoder, fname_domain, fname_problem)
 
-  success = agent.autoplay(ss_errtol=20, render=True, verbose=True)
+  # autoplay
+  success = agent.autoplay(ss_errtol=10, render=True, verbose=True)
   print('success: %s' % (success))
 
 

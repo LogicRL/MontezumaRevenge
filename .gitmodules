@@ -4,3 +4,9 @@
 [submodule "RLAgents"]
 	path = src/RLAgents
 	url = https://github.com/LogicRL/RLAgents.git
+[submodule "model_weights"]
+	path = model_weights
+	url = https://github.com/LogicRL/model_weights.git
+[submodule "annotated_data"]
+	path = annotated_data
+	url = https://github.com/LogicRL/annotated_data.git

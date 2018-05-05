@@ -24,7 +24,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-import pdb
+import pdb, IPython
 
 
 KEY_SPACE = ord(' ') # 32
@@ -265,21 +265,39 @@ def main():
   global human_sets_pause
   global key_printscreen_triggered
 
-  # Initialize visualization tool
+  # initialize visualization tool
   matplotlib.interactive(True)
 
-  # Initialize symbolic state decoder
-  decoder_classes = [15]
-  decoder = DecoderCNNModel(decoder_classes)
+  # initialize symbolic state decoder
+  decoder_classes               = [14]
+  decoder_label_dir             = '../annotated_data/symbolic_states_room1' 
+  decoder_frame_dir             = '../annotated_data/symbolic_states_room1' 
+  decoder_predicates_file       = '../annotated_data/predicates.txt'
+  decoder_weights_dir           = '../model_weights'
+  decoder_pretrained_model_file = decoder_weights_dir + '/parser_epoch_17_loss_7.19790995944436e-05_valacc_0.9992972883597884.t7'
 
-  # Initialize the environment
+  decoder = DecoderCNNModel(
+    decoder_classes,
+    pretrained_model_pth=decoder_pretrained_model_file,
+    text_dir=decoder_label_dir,
+    img_dir=decoder_frame_dir,
+    label_file=decoder_predicates_file,
+    weights_dir=decoder_weights_dir)
+
+  # initialize the environment
   env = gym.make('MontezumaRevenge-v0')
   s = env.reset()
   s_dec = Util.FrameToDecoderState(s)
   ss = decodeSymbolicState(decoder, s_dec)
   env.render()
 
-  # Register the event handlers
+  # print initial predicates
+  print('initial predicates:')
+  for p in ss:
+    print('+ %s' % (str(p)))
+  print('')
+
+  # register the event handlers
   env.unwrapped.viewer.window.on_key_press = handle_key_press_event
   env.unwrapped.viewer.window.on_key_release = handle_key_release_event
 

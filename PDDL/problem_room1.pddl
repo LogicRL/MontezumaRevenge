@@ -40,6 +40,7 @@
         (pathExistsInRoom room_1 ladder_3 chain_1)
         (pathExistsInRoom room_1 ladder_3 ladder_2)
         ; initial states
+        (actorInRoom room_1)
         (actorOnSpot room_1 ladder_1)
         (keyExists room_1 key_1)
         (doorExists room_1 door_1)

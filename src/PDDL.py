@@ -55,7 +55,9 @@ def show_plan(plan):
   initial_state = plan[0][1]
   goal_state = plan[-1][1]
 
-  print('initial_state: %s' % (initial_state))
+  print('initial_state:')
+  for p in initial_state:
+    print('+ %s' % (str(p)))
   print('')
 
   print('plan:')
@@ -65,7 +67,15 @@ def show_plan(plan):
     print(opstr)
   print('')
   
-  print('goal_state: %s' % (goal_state))
+  print('goal_state:')
+  for p in goal_state:
+    print('= %s' % (str(p)))
+  print('')
+
+  print('goals:')
+  goals = goal_state.difference(initial_state)
+  for p in goals:
+    print('+ %s' % (str(p)))
   print('')
 
 
