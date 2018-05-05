@@ -18,7 +18,7 @@ from collections import deque
 from PDDL import PDDLPlanner, show_plan
 from utils import LogicRLUtils as Util
 from decoder.CNN_state_parser_pytorch import CNNModel as DecoderCNNModel
-from decoder.RLAgents import RLAgents
+from RLAgents.RLAgents import RLAgents
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
