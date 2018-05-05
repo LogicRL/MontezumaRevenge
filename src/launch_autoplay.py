@@ -58,6 +58,7 @@ class AutoAgent(object):
     self.fname_problem = fname_problem
 
     self.agent_running_cost   = -1
+    self.agent_error_state_cost = -3
     self.agent_subgoal_reward = 100
     self.agent_failure_cost   = -100
     self.rl_state_joint = 4
@@ -278,7 +279,7 @@ class AutoAgent(object):
 
         elif ss_errcnt < ss_errtol:
           # assign subtask reward
-          r_rl = self.agent_running_cost
+          r_rl = self.agent_error_state_cost
 
           # accumulate symbolic state error
           ss_errcnt += 1
