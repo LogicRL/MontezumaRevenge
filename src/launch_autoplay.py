@@ -198,6 +198,12 @@ class AutoAgent(object):
 
       # find initial symbolic plan
       plan = self.findSymbolicPlan(ss)
+      if episode == 0:
+        print('initial plan:')
+        show_plan(plan)
+        print('')
+        input('press ENTER to start autoplay..')
+        print('')
 
       # render if requested
       if render:
