@@ -57,7 +57,7 @@ class AutoAgent(object):
     self.fname_domain = fname_domain
     self.fname_problem = fname_problem
 
-    self.agent_running_cost   = -1e-4
+    self.agent_running_cost   = -0.001
     self.agent_subgoal_reward = 1
     self.agent_failure_cost   = -1
     self.rl_state_joint = 4
@@ -159,11 +159,12 @@ class AutoAgent(object):
     return plan
 
 
-  def autoplay(self, max_episodes=int(1e6), learn=True, render=False, verbose=False):
+  def autoplay(self, max_episodes=int(1e6), ss_errtol=0, learn=True, render=False, verbose=False):
     """
     Play autonomously and learn online.
 
     @param max_episodes The maximum number of episodes to run the AutoAgent.
+    @param ss_errtol The symbolic state decoding error tolerance.
     @param learn The switch to enable online learning.
     @param render The switch to enable rendering.
     @param verbose The switch to enable verbose log.
@@ -195,20 +196,22 @@ class AutoAgent(object):
         q_rl_rewards.append(0)
       s_rl = Util.FramesToRLState(list(q_rl_frames))
 
+      # find initial symbolic plan
+      plan = self.findSymbolicPlan(ss)
+
       # render if requested
       if render:
         env.render()
 
       done = False
+      ss_errcnt = 0
       while not done:
-        # find the next symbolic operation
-        plan = self.findSymbolicPlan(ss)
-        
         # check if a feasible plan exists
         if plan is None or len(plan) == 0:
           done = True
           if verbose:
             print('[ INFO ] failed to find feasible plan')
+          continue
 
         # check if the goal already satisfied
         if len(plan) == 1:
@@ -218,8 +221,8 @@ class AutoAgent(object):
           if verbose:
             print('[ INFO ] subgoal satisfied')
           
-        # extract the next operator
-        assert(plan[0][1] == ss)
+        # extract states and operator from plan
+        ss_cur = plan[0][1]
         op_next = plan[1][0]
         ss_next_expected = plan[1][1]
 
@@ -236,24 +239,58 @@ class AutoAgent(object):
         q_rl_frames.append(frame)
         s_rl_next = Util.FramesToRLState(list(q_rl_frames))
 
+        # print state transition
+        if len(ss.difference(ss_next)) > 0 or len(ss_next.difference(ss)) > 0:
+          print_symbolic_state_transition(ss, ss_next)
+
         # determine reward for RL agent
         r_rl = 0
-        if ss_next == ss:
+        if ss_next == ss_cur:
+          # assign subtask reward
           r_rl = self.agent_running_cost
+
+          # reset symbolic state error counter
+          ss_errcnt = 0
+
+          # print verbose message
           if verbose:
             print('[ INFO ] symbolic state remains (r_rl: %f, op: %s)' % (r_rl, op_next))
+
         elif ss_next == ss_next_expected:
+          # assign subtask reward
           r_rl = self.agent_subgoal_reward
+
+          # reset symbolic state error counter
+          ss_errcnt = 0
+
+          # print verbose message
           if verbose:
             print('[ INFO ] symbolic plan step executed (r_rl: %f, op: %s)' % (r_rl, op_next))
-            print_symbolic_state_transition(ss, ss_next)
+
+          # replan due to symbolic state change
+          plan = self.findSymbolicPlan(ss)
+
+        elif ss_errcnt < ss_errtol:
+          # assign subtask reward
+          r_rl = self.agent_running_cost
+
+          # accumulate symbolic state error
+          ss_errcnt += 1
+
+          # print verbose message
+          if verbose:
+            print('[ INFO ] symbolic state error detected (errcnt: %d/%d, r_rl: %f, op: %s)' % (ss_errcnt, ss_errtol, r_rl, op_next))
+
         else:
+          # assign subtask reward
           r_rl = self.agent_failure_cost
           done = True
+
+          # print verbose message
           if verbose:
             print('[ INFO ] subtask failed (r_rl: %f, op: %s)' % (r_rl, op_next))
-            print_symbolic_state_transition(ss, ss_next)
 
+        # update subtask reward queue
         q_rl_rewards.append(r_rl)
 
         # render if requested
@@ -284,7 +321,7 @@ def main():
 
   agent = AutoAgent(env, decoder, fname_domain, fname_problem)
 
-  success = agent.autoplay(render=True, verbose=True)
+  success = agent.autoplay(ss_errtol=20, render=True, verbose=True)
   print('success: %s' % (success))
 
 
