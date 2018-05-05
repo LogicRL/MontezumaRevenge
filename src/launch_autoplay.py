@@ -12,13 +12,15 @@ __website__     = "http://www.davidqiu.com/"
 __copyright__   = "Copyright (C) 2018, David Qiu. All rights reserved."
 
 
+import sys
+import argparse
 import numpy as np
 import gym
 from collections import deque
 from PDDL import PDDLPlanner, show_plan
 from utils import LogicRLUtils as Util
 from decoder.CNN_state_parser_pytorch import CNNModel as DecoderCNNModel
-from decoder.RLAgents import RLAgents
+from RLAgents.RLAgents import RLAgents
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -57,9 +59,10 @@ class AutoAgent(object):
     self.fname_domain = fname_domain
     self.fname_problem = fname_problem
 
-    self.agent_running_cost   = -1e-4
-    self.agent_subgoal_reward = 1
-    self.agent_failure_cost   = -1
+    self.agent_running_cost   = -1
+    self.agent_error_state_cost = -3
+    self.agent_subgoal_reward = 100
+    self.agent_failure_cost   = -100
     self.rl_state_joint = 4
     self.rl_state_shape = (84, 84, self.rl_state_joint)
 
@@ -159,12 +162,14 @@ class AutoAgent(object):
     return plan
 
 
-  def autoplay(self, max_episodes=int(1e6), learn=True, render=False, verbose=False):
+  def autoplay(self, max_episodes=int(1e6), ss_errtol=0, learn=True, pause_plan=False, render=False, verbose=False):
     """
     Play autonomously and learn online.
 
     @param max_episodes The maximum number of episodes to run the AutoAgent.
+    @param ss_errtol The symbolic state decoding error tolerance.
     @param learn The switch to enable online learning.
+    @param pause_plan The switch to pause while showing the initial plan.
     @param render The switch to enable rendering.
     @param verbose The switch to enable verbose log.
     @return A boolean indicating if the agent solve the game within the maximum 
@@ -199,16 +204,25 @@ class AutoAgent(object):
       if render:
         env.render()
 
+      # find initial symbolic plan
+      plan = self.findSymbolicPlan(ss)
+      if episode == 0:
+        print('initial plan:')
+        show_plan(plan)
+        if pause_plan:
+          print('')
+          input('press ENTER to start autoplay..')
+        print('')
+
       done = False
+      ss_errcnt = 0
       while not done:
-        # find the next symbolic operation
-        plan = self.findSymbolicPlan(ss)
-        
         # check if a feasible plan exists
         if plan is None or len(plan) == 0:
           done = True
           if verbose:
             print('[ INFO ] failed to find feasible plan')
+          continue
 
         # check if the goal already satisfied
         if len(plan) == 1:
@@ -218,8 +232,8 @@ class AutoAgent(object):
           if verbose:
             print('[ INFO ] subgoal satisfied')
           
-        # extract the next operator
-        assert(plan[0][1] == ss)
+        # extract states and operator from plan
+        ss_cur = plan[0][1]
         op_next = plan[1][0]
         ss_next_expected = plan[1][1]
 
@@ -236,24 +250,58 @@ class AutoAgent(object):
         q_rl_frames.append(frame)
         s_rl_next = Util.FramesToRLState(list(q_rl_frames))
 
+        # print state transition
+        if len(ss.difference(ss_next)) > 0 or len(ss_next.difference(ss)) > 0:
+          print_symbolic_state_transition(ss, ss_next)
+
         # determine reward for RL agent
         r_rl = 0
-        if ss_next == ss:
+        if ss_next == ss_cur:
+          # assign subtask reward
           r_rl = self.agent_running_cost
+
+          # reset symbolic state error counter
+          ss_errcnt = 0
+
+          # print verbose message
           if verbose:
             print('[ INFO ] symbolic state remains (r_rl: %f, op: %s)' % (r_rl, op_next))
+
         elif ss_next == ss_next_expected:
+          # assign subtask reward
           r_rl = self.agent_subgoal_reward
+
+          # reset symbolic state error counter
+          ss_errcnt = 0
+
+          # print verbose message
           if verbose:
             print('[ INFO ] symbolic plan step executed (r_rl: %f, op: %s)' % (r_rl, op_next))
-            print_symbolic_state_transition(ss, ss_next)
+
+          # replan due to symbolic state change
+          plan = self.findSymbolicPlan(ss_next)
+
+        elif ss_errcnt < ss_errtol:
+          # assign subtask reward
+          r_rl = self.agent_error_state_cost
+
+          # accumulate symbolic state error
+          ss_errcnt += 1
+
+          # print verbose message
+          if verbose:
+            print('[ INFO ] symbolic state error detected (errcnt: %d/%d, r_rl: %f, op: %s)' % (ss_errcnt, ss_errtol, r_rl, op_next))
+
         else:
+          # assign subtask reward
           r_rl = self.agent_failure_cost
           done = True
+
+          # print verbose message
           if verbose:
             print('[ INFO ] subtask failed (r_rl: %f, op: %s)' % (r_rl, op_next))
-            print_symbolic_state_transition(ss, ss_next)
 
+        # update subtask reward queue
         q_rl_rewards.append(r_rl)
 
         # render if requested
@@ -273,18 +321,65 @@ class AutoAgent(object):
     return False
 
 
+def parse_arguments():
+    # Command-line flags are defined here.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--max_episodes', dest='max_episodes',
+                        type=int, default=int(1e6),
+                        help="Maximum number of episodes to run the LogicRL agent.")
+
+    # https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
+    parser_group = parser.add_mutually_exclusive_group(required=False)
+    parser_group.add_argument('--render', dest='render',
+                              action='store_true',
+                              help="Whether to render the environment.")
+    parser_group.add_argument('--no-render', dest='render',
+                              action='store_false',
+                              help="Whether to render the environment.")
+    parser.set_defaults(render=False)
+
+    parser_group = parser.add_mutually_exclusive_group(required=False)
+    parser_group.add_argument('--plan', dest='plan',
+                              action='store_true',
+                              help="Whether to pause while showing the initial plan.")
+    parser_group.add_argument('--skip-plan', dest='plan',
+                              action='store_false',
+                              help="Whether to pause while showing the initial plan.")
+    parser.set_defaults(plan=False)
+
+    return parser.parse_args()
+
+
 def main():
+  args = parse_arguments()
+
   fname_domain = '../PDDL/domain.pddl'
   fname_problem = '../PDDL/problem_room1.pddl'
   
+  # initialize environment
   env = gym.make('MontezumaRevenge-v0')
 
-  decoder_classes = [15]
-  decoder = DecoderCNNModel(decoder_classes)
+  # initialize symbolic state decoder
+  decoder_classes               = [14]
+  decoder_label_dir             = '../annotated_data/symbolic_states_room1' 
+  decoder_frame_dir             = '../annotated_data/symbolic_states_room1' 
+  decoder_predicates_file       = '../annotated_data/predicates.txt'
+  decoder_weights_dir           = '../model_weights'
+  decoder_pretrained_model_file = decoder_weights_dir + '/parser_epoch_17_loss_7.19790995944436e-05_valacc_0.9992972883597884.t7'
 
+  decoder = DecoderCNNModel(
+    decoder_classes,
+    pretrained_model_pth=decoder_pretrained_model_file,
+    text_dir=decoder_label_dir,
+    img_dir=decoder_frame_dir,
+    label_file=decoder_predicates_file,
+    weights_dir=decoder_weights_dir)
+
+  # initialize agent
   agent = AutoAgent(env, decoder, fname_domain, fname_problem)
 
-  success = agent.autoplay(render=True, verbose=True)
+  # autoplay
+  success = agent.autoplay(ss_errtol=10, pause_plan=args.plan, render=args.render, verbose=True)
   print('success: %s' % (success))
 
 
