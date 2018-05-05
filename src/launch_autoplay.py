@@ -12,6 +12,8 @@ __website__     = "http://www.davidqiu.com/"
 __copyright__   = "Copyright (C) 2018, David Qiu. All rights reserved."
 
 
+import sys
+import argparse
 import numpy as np
 import gym
 from collections import deque
@@ -160,13 +162,14 @@ class AutoAgent(object):
     return plan
 
 
-  def autoplay(self, max_episodes=int(1e6), ss_errtol=0, learn=True, render=False, verbose=False):
+  def autoplay(self, max_episodes=int(1e6), ss_errtol=0, learn=True, pause_plan=False, render=False, verbose=False):
     """
     Play autonomously and learn online.
 
     @param max_episodes The maximum number of episodes to run the AutoAgent.
     @param ss_errtol The symbolic state decoding error tolerance.
     @param learn The switch to enable online learning.
+    @param pause_plan The switch to pause while showing the initial plan.
     @param render The switch to enable rendering.
     @param verbose The switch to enable verbose log.
     @return A boolean indicating if the agent solve the game within the maximum 
@@ -206,8 +209,9 @@ class AutoAgent(object):
       if episode == 0:
         print('initial plan:')
         show_plan(plan)
-        print('')
-        input('press ENTER to start autoplay..')
+        if pause_plan:
+          print('')
+          input('press ENTER to start autoplay..')
         print('')
 
       done = False
@@ -317,7 +321,38 @@ class AutoAgent(object):
     return False
 
 
+def parse_arguments():
+    # Command-line flags are defined here.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--max_episodes', dest='max_episodes',
+                        type=int, default=int(1e6),
+                        help="Maximum number of episodes to run the LogicRL agent.")
+
+    # https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse
+    parser_group = parser.add_mutually_exclusive_group(required=False)
+    parser_group.add_argument('--render', dest='render',
+                              action='store_true',
+                              help="Whether to render the environment.")
+    parser_group.add_argument('--no-render', dest='render',
+                              action='store_false',
+                              help="Whether to render the environment.")
+    parser.set_defaults(render=False)
+
+    parser_group = parser.add_mutually_exclusive_group(required=False)
+    parser_group.add_argument('--plan', dest='plan',
+                              action='store_true',
+                              help="Whether to pause while showing the initial plan.")
+    parser_group.add_argument('--skip-plan', dest='plan',
+                              action='store_false',
+                              help="Whether to pause while showing the initial plan.")
+    parser.set_defaults(plan=False)
+
+    return parser.parse_args()
+
+
 def main():
+  args = parse_arguments()
+
   fname_domain = '../PDDL/domain.pddl'
   fname_problem = '../PDDL/problem_room1.pddl'
   
@@ -344,7 +379,7 @@ def main():
   agent = AutoAgent(env, decoder, fname_domain, fname_problem)
 
   # autoplay
-  success = agent.autoplay(ss_errtol=10, render=True, verbose=True)
+  success = agent.autoplay(ss_errtol=10, pause_plan=args.plan, render=args.render, verbose=True)
   print('success: %s' % (success))
 
 
