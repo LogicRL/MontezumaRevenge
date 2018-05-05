@@ -268,7 +268,7 @@ class AutoAgent(object):
             print('[ INFO ] symbolic plan step executed (r_rl: %f, op: %s)' % (r_rl, op_next))
 
           # replan due to symbolic state change
-          plan = self.findSymbolicPlan(ss)
+          plan = self.findSymbolicPlan(ss_next)
 
         elif ss_errcnt < ss_errtol:
           # assign subtask reward
