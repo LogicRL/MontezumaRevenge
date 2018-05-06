@@ -73,7 +73,7 @@ def main():
   decoder_frame_dir             = '../annotated_data/symbolic_states_room1' 
   decoder_predicates_file       = '../annotated_data/predicates.txt'
   decoder_weights_dir           = '../model_weights'
-  decoder_pretrained_model_file = decoder_weights_dir + '/parser_epoch_17_loss_7.19790995944436e-05_valacc_0.9992972883597884.t7'
+  decoder_pretrained_model_file = decoder_weights_dir + '/decoder_weights.t7'
 
   decoder = DecoderCNNModel(
     decoder_classes,
