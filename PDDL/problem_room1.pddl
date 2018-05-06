@@ -21,6 +21,7 @@
         ; configuration: paths from entrance_1
         (doorPathExistsInRoom room_1 entrance_1 door_1 ladder_1)
         ; configuration: paths from ladder_1
+        (actorRevivesOnSpot room_1 ladder_1)
         (doorPathExistsInRoom room_1 ladder_1 door_1 entrance_1)
         (doorPathExistsInRoom room_1 ladder_1 door_2 entrance_2)
         (pathExistsInRoom room_1 ladder_1 conveyor_1)
@@ -31,14 +32,15 @@
         (pathExistsInRoom room_1 chain_1 conveyor_1)
         (pathExistsInRoom room_1 chain_1 ladder_3)
         ; configuration: paths from ladder_2
-        (pathExistsInRoom room_1 ladder_2 ladder_3)
+        (monsterPathExistsInRoom room_1 ladder_2 skull_1 ladder_3)
         (keyReachable room_1 ladder_2 key_1)
         ; configuration: paths from conveyor_1
         (pathExistsInRoom room_1 conveyor_1 ladder_1)
         (pathExistsInRoom room_1 conveyor_1 chain_1)
         ; configuration: paths from ladder_3
         (pathExistsInRoom room_1 ladder_3 chain_1)
-        (pathExistsInRoom room_1 ladder_3 ladder_2)
+        (monsterPathExistsInRoom room_1 ladder_3 skull_1 ladder_2)
+        (monsterReachable room_1 ladder_3 skull_1)
         ; initial states
         (actorInRoom room_1)
         (actorOnSpot room_1 ladder_1)

@@ -22,13 +22,12 @@ from PDDL import PDDLPlanner, show_plan
 from utils import LogicRLUtils as Util
 from decoder.CNN_state_parser_pytorch import CNNModel as DecoderCNNModel
 from RLAgents.RLAgents import RLAgents
+from AutoAgent import AutoAgent, print_symbolic_state_transition
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 import pdb, IPython
-
-
 
 
 KEY_SPACE = ord(' ') # 32
@@ -217,139 +216,14 @@ def handle_key_release_event(key, mod):
   update_human_agent_action()
 
 
-def print_symbolic_state_transition(s1, s2, prefix=''):
+class AutoAgentGuidable(AutoAgent):
   """
-  Print the difference between two symbolic states.
-
-  @param s1 The original symbolic state.
-  @param s2 The updated symbolic state.
-  @param prefix The prefix added to the front of each line.
+  Guidable AutoAgent class.
   """
 
-  predicates_neg = s1.difference(s2)
-  predicates_pos = s2.difference(s1)
-
-  for p in predicates_neg:
-    print(prefix + '- ' + str(p))
-
-  for p in predicates_pos:
-    print(prefix + '+ ' + str(p))
-
-
-class AutoAgent(object):
-  """
-  AutoAgent class.
-  """
-
-  def __init__(self, env, decoder, fname_domain, fname_problem):
-    super(AutoAgent, self).__init__()
+  def __init__(self, env, decoder, fname_domain, fname_problem, static_predicate_operators):
+    super(AutoAgentGuidable, self).__init__(env, decoder, fname_domain, fname_problem, static_predicate_operators)
     
-    self.env = env
-    self.fname_domain = fname_domain
-    self.fname_problem = fname_problem
-
-    self.agent_running_cost   = -1
-    self.agent_error_state_cost = -3
-    self.agent_subgoal_reward = 100
-    self.agent_failure_cost   = -100
-    self.rl_state_joint = 4
-    self.rl_state_shape = (84, 84, self.rl_state_joint)
-
-    # initialize a symbolic planner
-    self.planner = PDDLPlanner(fname_domain, fname_problem)
-    self.static_predicate_operators = [
-      'keyReachable',
-      'swordReachable',
-      'rewardReachable',
-      'pathExistsInRoom',
-      'doorPathExistsInRoom',
-      'pathExistsAcrossRooms'
-    ]
-
-    # construct predefined initial state and static predicates
-    self.static_predicates = set()
-    self.predefined_initial_state = set()
-    for a in self.planner.predefined_initial_state:
-      # construct initial state
-      self.predefined_initial_state.add(tuple(a.predicate))
-
-      # construct static predicates
-      if a.predicate[0] in self.static_predicate_operators:
-        self.static_predicates.add(tuple(a.predicate))
-
-    # construct predefined goals
-    self.predefined_goals = set()
-    for a in self.planner.predefined_goals:
-      self.predefined_goals.add(tuple(a.predicate))
-
-    # initialize a symbolic state decoder
-    self.decoder = decoder
-
-    # initialize a RLAgents pool
-    self.agents = RLAgents(self.rl_state_shape, self.env.action_space.n)
-    
-
-  def decodeSymbolicState(self, s_dec):
-    """
-    Decode symbolic state from a lower level state.
-
-    @param s_dec The lower-level decoder state.
-    @return The corresponding symbolic state as a set of predicates.
-    """
-
-    decoded_predicate_strs = set(self.decoder.decode_state(s_dec))
-    symbolic_state = set()
-
-    for predstr in decoded_predicate_strs:
-      predicate = tuple(predstr.split(','))
-      symbolic_state.add(predicate)
-    
-    symbolic_state = symbolic_state.union(self.static_predicates)
-
-    return symbolic_state
-
-
-  def predictActionByAgent(self, agent_name, s_rl):
-    """
-    Predict an action to take by an agent at a specific state.
-
-    @param agent_name The name of the agent.
-    @param s_rl The lower-level RL state.
-    @return The lower-level action predicted by the agent to take.
-    """
-
-    a = self.agents.execute(agent_name, s_rl)
-
-    return a
-
-
-  def feedbackToAgent(self, agent_name, s_rl, a, s_rl_next, r_rl, done):
-    """
-    Provide feedback to an RL agent.
-
-    @param agent_name The name of the RL agent.
-    @param s_rl The RL state the agent was at.
-    @param a The lower-level action taken by the agent.
-    @param s_rl_next The RL state the agent reached after taking the action.
-    @param r_rl The reward received by the agent.
-    @param done A boolean indicating if an episode ends.
-    """
-
-    self.agents.feedback(agent_name, (s_rl, a, s_rl_next, r_rl, done))
-
-
-  def findSymbolicPlan(self, ss):
-    """
-    Find a symbolic plan towards the goal.
-
-    @param ss The symbolic state to start from.
-    @return A plan found. `None` will be returned if no plan is found.
-    """
-
-    plan = self.planner.find_plan(initial_state=ss, goals=None) # using default goals
-
-    return plan
-
 
   def autoplay(self, max_episodes=int(1e6), ss_errtol=0, learn=True, pause_plan=False, render=False, verbose=False):
     """
@@ -430,7 +304,7 @@ class AutoAgent(object):
         agent_name = op_next
         a = self.predictActionByAgent(agent_name, s_rl)
 
-        # human guided action
+        # inject human guidance
         if human_guiding:
           a = human_agent_action
 
@@ -566,7 +440,18 @@ def main():
     weights_dir=decoder_weights_dir)
 
   # initialize agent
-  agent = AutoAgent(env, decoder, fname_domain, fname_problem)
+  static_predicate_operators = [
+    'actorRevivesOnSpot',
+    'keyReachable',
+    'swordReachable',
+    'rewardReachable',
+    'monsterReachable',
+    'pathExistsInRoom',
+    'doorPathExistsInRoom',
+    'monsterPathExistsInRoom',
+    'pathExistsAcrossRooms'
+  ]
+  agent = AutoAgentGuidable(env, decoder, fname_domain, fname_problem, static_predicate_operators)
 
   # autoplay
   success = agent.autoplay(ss_errtol=10, pause_plan=args.plan, render=True, verbose=True)

@@ -23,14 +23,17 @@
         (actorWithKey)
         (swordExists ?room - room ?sword - sword)
         (actorWithSword)
+        (actorRevivesOnSpot ?room - room ?revivingSpot - spot)
         (rewardExists ?room - room ?reward - reward)
         (doorExists ?room - room ?door - door)
         (monsterExists ?room - room ?monster - monster)
         (keyReachable ?room - room ?spot - spot ?key - key)
         (swordReachable ?room - room ?spot - spot ?sword - sword)
         (rewardReachable ?room - room ?spot - spot ?reward - reward)
+        (monsterReachable ?room - room ?spot - spot ?monster - monster)
         (pathExistsInRoom ?room - room ?spotFrom - spot ?spotTo - spot)
         (doorPathExistsInRoom ?room - room ?spotFrom - spot ?door - door ?spotTo - spot)
+        (monsterPathExistsInRoom ?room - room ?spotFrom - spot ?monster - monster ?spotTo - spot)
         (pathExistsAcrossRooms ?roomFrom - room ?spotFrom - spot ?roomTo - room ?spotTo - spot)
     )
 
@@ -80,6 +83,22 @@
             (not (actorOnSpot ?room ?spotTo))
             (doorPathExistsInRoom ?room ?spotFrom ?door ?spotTo)
             (not (doorExists ?room ?door))
+        )
+        :effect (and
+            (actorOnSpot ?room ?spotTo)
+            (not (actorOnSpot ?room ?spotFrom))
+        )
+    )
+
+    (:action moveActorInRoomThroughDeadMonster
+        ; move the actor from a spot to another spot through a dead monster in 
+        ; a room 
+        :parameters (?room - room ?spotFrom - spot ?monster - monster ?spotTo - spot)
+        :precondition (and
+            (actorOnSpot ?room ?spotFrom)
+            (not (actorOnSpot ?room ?spotTo))
+            (monsterPathExistsInRoom ?room ?spotFrom ?monster ?spotTo)
+            (not (monsterExists ?room ?monster))
         )
         :effect (and
             (actorOnSpot ?room ?spotTo)
@@ -141,6 +160,22 @@
         )
         :effect (and
             (not (rewardExists ?room ?reward))
+        )
+    )
+
+    (:action suicideWithMonster
+        ; sucide with a monster from a spot
+        :parameters (?room - room ?spot - spot ?monster - monster ?revivingSpot - spot)
+        :precondition (and
+            (actorOnSpot ?room ?spot)
+            (monsterExists ?room ?monster)
+            (monsterReachable ?room ?spot ?monster)
+            (actorRevivesOnSpot ?room ?revivingSpot)
+        )
+        :effect (and
+            (not (monsterExists ?room ?monster))
+            (not (actorOnSpot ?room ?spot))
+            (actorOnSpot ?room ?revivingSpot)
         )
     )
 )
